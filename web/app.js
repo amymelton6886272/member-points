@@ -6,7 +6,7 @@
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 
-import { ptsFmt, amountToPoints, tierOf, tierLevel, nextTierInfo, txnLabel, money, esc } from './core.js';
+import { ptsFmt, amountToPoints, tierOf, tierLevel, nextTierInfo, txnLabel, money, esc, backupFormatLabel, checkBackupConsistency } from './core.js';
 import { Store } from './store-native.js';
 
 /* ---------- 全局状态 ---------- */

@@ -45,7 +45,10 @@ export const Store = {
 
   async backup() { return db.backup(); },
 
-  async restore(data) { db.restore(data); return { ok: true }; },
+  async restore(data) {
+    const stats = db.restore(data);
+    return { ok: true, stats };
+  },
 
   async clearAll() { db.clearAll(); return { ok: true }; },
 };

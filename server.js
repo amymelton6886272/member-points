@@ -5,6 +5,7 @@ const { DatabaseSync } = require('node:sqlite');
 const {
   ptsFmt, amountToPoints, addPts, toUnits, fromUnits,
   tierLevel, tierOf, nextTierInfo, txnLabel, money, esc,
+  normBackup, normTime, normPoints, normMember, normTxn, backupFormatLabel,
 } = require('./public/core.js');
 
 const ROOT = __dirname;
@@ -332,34 +333,39 @@ const server = http.createServer(async (req, res) => {
     /* ---------- 还原 ---------- */
     if (p === '/api/restore' && method === 'POST') {
       const body = await readBody(req);
-      const data = typeof body === 'string' ? JSON.parse(body) : body;
-      if (!data || !Array.isArray(data.members)) return json(res, 400, { error: '备份文件格式不正确' });
+      const raw = typeof body === 'string' ? JSON.parse(body) : body;
+      let data;
+      try {
+        // 归一化：兼容 v1（旧 App 导出）与 v2（当前格式）
+        data = normBackup(raw);
+      } catch (e) {
+        return json(res, 400, { error: e.message });
+      }
       db.exec('BEGIN');
       try {
         db.exec('DELETE FROM transactions; DELETE FROM members;');
         const insM = db.prepare(
           'INSERT INTO members (id,name,phone,card_no,points,total_spend,note,created_at) VALUES (?,?,?,?,?,?,?,?)');
         for (const m of data.members) {
-          insM.run(
-            m.id ?? null, String(m.name || '未命名'), String(m.phone || ''),
-            String(m.cardNo || m.card_no || ''), Number(m.points || 0),
-            Number(m.totalSpend ?? m.total_spend ?? 0), String(m.note || ''),
-            m.createdAt || m.created_at || nowISO());
+          insM.run(m.id, m.name, m.phone, m.cardNo, m.points, m.totalSpend, m.note, m.createdAt);
         }
         const insT = db.prepare(
           'INSERT INTO transactions (member_id,type,amount,points,note,created_at) VALUES (?,?,?,?,?,?)');
-        for (const t of data.transactions || data.txns || []) {
-          insT.run(
-            t.memberId ?? t.member_id, String(t.type || 'consume'),
-            Number(t.amount || 0), Number(t.points || 0), String(t.note || t.remark || ''),
-            t.createdAt || t.created_at || nowISO());
+        for (const t of data.transactions) {
+          insT.run(t.memberId, t.type, t.amount, t.points, t.note, t.createdAt);
         }
         db.exec('COMMIT');
       } catch (e) {
         db.exec('ROLLBACK');
         return json(res, 400, { error: '还原失败：' + e.message });
       }
-      return json(res, 200, { ok: true, stats: stats() });
+      return json(res, 200, {
+        ok: true,
+        stats: stats(),
+        format: backupFormatLabel(raw),
+        members: data.members.length,
+        transactions: data.transactions.length,
+      });
     }
 
     /* ---------- 清空 ---------- */

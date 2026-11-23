@@ -3,9 +3,17 @@
    与 server.js 表结构、积分规则、等级规则完全一致
    ============================================================ */
 
-import { ptsFmt, amountToPoints, addPts, toUnits, fromUnits, tierLevel, tierOf, nextTierInfo, txnLabel } from './core.js';
+import {
+  ptsFmt, amountToPoints, addPts, toUnits, fromUnits,
+  tierLevel, tierOf, nextTierInfo, txnLabel,
+  normBackup, normTime, normPoints, normMember, normTxn, backupFormatLabel,
+} from './core.js';
 
-export { ptsFmt, amountToPoints, addPts, toUnits, fromUnits, tierLevel, tierOf, nextTierInfo, txnLabel };
+export {
+  ptsFmt, amountToPoints, addPts, toUnits, fromUnits,
+  tierLevel, tierOf, nextTierInfo, txnLabel,
+  normBackup, normTime, normPoints, normMember, normTxn, backupFormatLabel,
+};
 
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS members (
@@ -220,26 +228,24 @@ export class DB {
     };
   }
 
-  restore(data) {
-    if (!data || !Array.isArray(data.members)) throw new Error('备份文件格式不正确');
+  restore(raw) {
+    // 归一化：兼容 v1（旧 App 导出：txns/remark/spent/毫秒时间戳/负数金额）
+    // 与 v2（当前格式）两种备份
+    const data = normBackup(raw);
     this.db.run('BEGIN');
     try {
       this.db.run('DELETE FROM transactions; DELETE FROM members;');
       const mStmt = this.db.prepare(
         'INSERT INTO members (id,name,phone,card_no,points,total_spend,note,created_at) VALUES (?,?,?,?,?,?,?,?)');
       for (const m of data.members) {
-        mStmt.run([m.id ?? null, String(m.name || '未命名'), String(m.phone || ''),
-          String(m.cardNo || m.card_no || ''), Number(m.points || 0),
-          Number(m.totalSpend ?? m.total_spend ?? 0), String(m.note || ''),
-          m.createdAt || m.created_at || new Date().toISOString()]);
+        mStmt.run([m.id, m.name, m.phone, m.cardNo, m.points,
+          m.totalSpend, m.note, m.createdAt]);
       }
       mStmt.free();
       const tStmt = this.db.prepare(
         'INSERT INTO transactions (member_id,type,amount,points,note,created_at) VALUES (?,?,?,?,?,?)');
-      for (const t of data.transactions || data.txns || []) {
-        tStmt.run([t.memberId ?? t.member_id, String(t.type || 'consume'),
-          Number(t.amount || 0), Number(t.points || 0), String(t.note || t.remark || ''),
-          t.createdAt || t.created_at || new Date().toISOString()]);
+      for (const t of data.transactions) {
+        tStmt.run([t.memberId, t.type, t.amount, t.points, t.note, t.createdAt]);
       }
       tStmt.free();
       this.db.run('COMMIT');
