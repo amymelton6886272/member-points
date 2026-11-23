@@ -6,3 +6,6 @@ ios/App/App/public/
 dist/
 *.log
 logs.zip
+*.ipa
+artifact.zip
+ci.log

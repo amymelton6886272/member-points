@@ -28,6 +28,8 @@ jobs:
     # macOS runner 自带 Xcode
     runs-on: macos-latest
     timeout-minutes: 45
+    permissions:
+      contents: write   # 创建 Release 需要
 
     steps:
       - name: 检出代码
@@ -121,7 +123,7 @@ jobs:
           import os, zipfile, stat
           root = os.environ["ROOT"]
           src = os.path.join(root, "build", "ipa", "Payload")
-          out = os.path.join(root, "build", "ipa", "会员积分-unsigned.ipa")
+          out = os.path.join(root, "build", "ipa", "member-points-unsigned.ipa")
           with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
               for base, _dirs, files in os.walk(src):
                   for f in files:
@@ -269,7 +271,13 @@ jobs:
           body: |
             ## 会员积分 iOS 安装包
 
-            ### 安装方法（Ad Hoc 包）
+            > 本次为 **unsigned（未签名）** 构建：不能直接安装到 iPhone，
+            > 仅用于验证工程可编译、或配合第三方签名工具使用。
+            >
+            > 需要能直接装机的包，请在 Actions 里用 `adhoc` 模式重新构建
+            > （需配置 Apple 证书 secrets）。
+
+            ### 如果是 Ad Hoc 签名包
             1. 用 AirDrop / 微信 / iCloud 把 `.ipa` 传到 iPhone
             2. 用「文件」App 点开安装
             3. 首次需在 `设置 → 通用 → VPN与设备管理` 信任开发者证书
