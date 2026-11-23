@@ -109,7 +109,7 @@ jobs:
 
           # 手动打成 ipa（unsigned）：无证书时 -exportArchive 会失败，
           # 所以直接从 archive 里取 .app 按 Payload/ 结构打包
-          rm -rf build/ipa/Payload
+          rm -rf build/ipa
           mkdir -p build/ipa/Payload
           cp -R "build/会员积分.xcarchive/Products/Applications/App.app" \
                 "build/ipa/Payload/"
@@ -117,8 +117,6 @@ jobs:
           zip -qry "../会员积分-unsigned.ipa" Payload
           cd ..
           rm -rf build/ipa/Payload
-          mkdir -p build/ipa
-          mv build/会员积分-unsigned.ipa build/ipa/
           echo "unsigned ipa 已生成："
           ls -la build/ipa/
 
@@ -173,6 +171,7 @@ jobs:
           PLIST
           sed -i '' "s/TEAMIDHERE/$TEAM_ID/" export-options-adhoc.plist
 
+          rm -rf build/ipa
           mkdir -p build/ipa
           xcodebuild \
             -exportArchive \
@@ -226,6 +225,7 @@ jobs:
           PLIST
           sed -i '' "s/TEAMIDHERE/$TEAM_ID/" export-options-appstore.plist
 
+          rm -rf build/ipa
           mkdir -p build/ipa
           xcodebuild \
             -exportArchive \
