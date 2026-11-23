@@ -47,12 +47,20 @@ jobs:
       - name: 设置 Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
 
       - name: 安装依赖
         run: |
-          npm ci
-          npx cap sync ios
+          set -e
+          npm ci --no-audit --no-fund
+          echo "node: $(node -v)  npm: $(npm -v)"
+
+      - name: 同步 Capacitor
+        run: |
+          set -e
+          npx cap sync ios --verbose
 
       - name: 生成 Shared Scheme
         run: |
