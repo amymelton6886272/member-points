@@ -5,3 +5,4 @@ ios/App/Pods/
 ios/App/App/public/
 dist/
 *.log
+logs.zip
