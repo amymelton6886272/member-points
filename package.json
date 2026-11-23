@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "preview:web": "node serve-web.js",
-    "sync:ios": "npx cap sync ios",
+    "sync:web": "node sync-web.js",
+    "sync:ios": "node sync-web.js && npx cap sync ios",
     "open:ios": "npx cap open ios"
   },
   "keywords": [],

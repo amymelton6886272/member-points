@@ -6,6 +6,7 @@
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 
+/* core.js 把工具函数挂在 window.Core 命名空间下 */
 import { ptsFmt, amountToPoints, tierOf, tierLevel, nextTierInfo, txnLabel, money, esc, backupFormatLabel, checkBackupConsistency } from './core.js';
 import { Store } from './store-native.js';
 
@@ -687,18 +688,38 @@ function restoreFromFile() {
       try { data = JSON.parse(String(reader.result)); }
       catch (e) { return toast('文件不是有效的备份：' + e.message); }
       if (!data || !Array.isArray(data.members)) return toast('文件格式不对，缺少 members');
+
+      const fmt = backupFormatLabel(data);
+      const txCount = (data.transactions || data.txns || []).length;
       const ok = confirm(
         `从备份还原？\n\n` +
-        `备份时间：${data.exportedAt ? data.exportedAt.slice(0, 16).replace('T', ' ') : '未知'}\n` +
+        `备份时间：${data.exportedAt ? String(data.exportedAt).slice(0, 16).replace('T', ' ') : '未知'}\n` +
         `会员：${data.members.length} 位\n` +
-        `流水：${(data.transactions || data.txns || []).length} 条\n\n` +
-        `⚠️ 当前数据将被覆盖，不可恢复。`);
+        `流水：${txCount} 条\n` +
+        (fmt ? `\n${fmt}\n` : '') +
+        `\n⚠️ 当前数据将被覆盖，不可恢复。`);
       if (!ok) return;
       try {
         await Store.restore(data);
-        toast(`已还原：${data.members.length} 位会员`);
+        const warns = checkBackupConsistency(data);
         await renderMembers();
         await renderAllTxns();
+        if (warns.length) {
+          // 数据有出入 —— 会员汇总与流水对不上，温和提示但不改数据
+          openSheet('已还原，但数据有出入', `
+            <p style="font-size:13px;color:var(--sub);margin:0 0 12px;line-height:1.6">
+              以下项目的<b>会员汇总值</b>与<b>流水明细</b>不一致，数据已按备份原样导入，未做修改：</p>
+            <div style="background:var(--input-bg);border-radius:12px;padding:12px;margin-bottom:14px">
+              ${warns.map((w) => `<div style="font-size:12.5px;color:var(--txt);margin-bottom:6px;line-height:1.5">· ${esc(w)}</div>`).join('')}
+            </div>
+            <p style="font-size:12px;color:var(--sub);margin:0;line-height:1.6">
+              会员列表显示的是<b>汇总值</b>，流水页显示的是<b>每笔明细</b>。<br>
+              如果汇总值是对的，说明历史流水没记全，属正常。</p>
+            <button class="btn" id="warnOk" data-sheet-ok style="margin-top:14px">知道了</button>
+          `);
+        } else {
+          toast(`已还原：${data.members.length} 位会员${fmt}`);
+        }
       } catch (e) {
         toast('还原失败：' + e.message);
       }
@@ -749,10 +770,25 @@ async function restoreCodeDialog() {
     catch (e) { toast('备份码格式错误'); return false; }
     try {
       await Store.restore(data);
+      const warns = checkBackupConsistency(data);
       closeSheet();
-      toast(`已还原：${data.members.length} 位会员`);
       await renderMembers();
       await renderAllTxns();
+      if (warns.length) {
+        openSheet('已还原，但数据有出入', `
+          <p style="font-size:13px;color:var(--sub);margin:0 0 12px;line-height:1.6">
+            以下项目的<b>会员汇总值</b>与<b>流水明细</b>不一致，数据已按备份原样导入，未做修改：</p>
+          <div style="background:var(--input-bg);border-radius:12px;padding:12px;margin-bottom:14px">
+            ${warns.map((w) => `<div style="font-size:12.5px;color:var(--txt);margin-bottom:6px;line-height:1.5">· ${esc(w)}</div>`).join('')}
+          </div>
+          <p style="font-size:12px;color:var(--sub);margin:0;line-height:1.6">
+            会员列表显示的是<b>汇总值</b>，流水页显示的是<b>每笔明细</b>。<br>
+            如果汇总值是对的，说明历史流水没记全，属正常。</p>
+          <button class="btn" id="warnOk" data-sheet-ok style="margin-top:14px">知道了</button>
+        `);
+      } else {
+        toast(`已还原：${data.members.length} 位会员${backupFormatLabel(data)}`);
+      }
     } catch (e) {
       toast('还原失败：' + e.message);
       return false;
