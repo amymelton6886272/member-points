@@ -1,164 +1,330 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2568f">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>会员积分</title>
-<link rel="icon" href="icon-192.png" />
-<link rel="apple-touch-icon" href="apple-touch-icon.png" />
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css?v=103">
 </head>
 <body>
-<div class="phone">
-  <!-- ============ 顶部绿色头 ============ -->
-  <header class="app-header">
-    <div class="hd-row">
-      <div>
-        <h1 id="pageTitle">会员积分</h1>
-        <p id="pageSub">中午好 · 11月23日 周一</p>
-      </div>
-      <button class="hd-btn" id="headerAction">＋ 新增</button>
+
+<header>
+  <div class="hrow">
+    <button id="btnBack" class="back-btn" style="display:none" aria-label="返回">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M15 5L8 12l7 7" stroke="currentColor" stroke-width="2.4"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>返回</span>
+    </button>
+    <div style="flex:1;min-width:0">
+      <div class="ttl" id="hTitle">会员积分</div>
+      <div class="date" id="hDate"></div>
     </div>
-  </header>
+    <button id="hAction" style="display:none">+ 新增</button>
+  </div>
+</header>
 
-  <!-- ============ 会员页 ============ -->
-  <main class="view" id="view-members">
-    <section class="stat-row">
-      <div class="stat-card green">
-        <div class="stat-value" id="stMembers">0</div>
-        <div class="stat-label">会员数</div>
+<main>
+  <!-- ============ 会员列表 ============ -->
+  <section class="page on" id="pMember">
+    <div class="stat-row">
+      <div class="stat"><div class="bar"></div><div class="in"><b id="sCnt">0</b><span>会员数</span></div></div>
+      <div class="stat" id="statSpent" style="cursor:pointer">
+        <div class="bar" style="background:linear-gradient(90deg,#3fa9f5,#7cc8ff)"></div>
+        <div class="in"><b id="sBal">—</b><span id="sBalLabel">消费（点击查看）</span></div>
       </div>
-      <div class="stat-card blue clickable" id="stAmountCard">
-        <div class="stat-value" id="stAmount">—</div>
-        <div class="stat-label">消费（点击查看）</div>
-      </div>
-      <div class="stat-card orange">
-        <div class="stat-value" id="stPoints">0</div>
-        <div class="stat-label">积分合计</div>
-      </div>
-    </section>
+      <div class="stat"><div class="bar"></div><div class="in"><b id="sPts">0</b><span>积分合计</span></div></div>
+    </div>
 
-    <section class="action-row">
-      <button class="action-card" data-act="consume">
-        <div class="act-icon mint"><span class="ic" data-icon="tag"></span></div>
-        <div class="act-name">记消费</div>
-        <div class="act-sub">快速加积分</div>
+    <div class="quick">
+      <button class="quick-item" id="qkPay">
+        <div class="quick-ico qi-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+        <div class="quick-t">记消费</div>
+        <div class="quick-s">快速加积分</div>
       </button>
-      <button class="action-card" data-act="add">
-        <div class="act-icon sky"><span class="ic" data-icon="plus"></span></div>
-        <div class="act-name">新增会员</div>
-        <div class="act-sub">开一张积分卡</div>
+      <button class="quick-item" id="qkAdd">
+        <div class="quick-ico qi-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        <div class="quick-t">新增会员</div>
+        <div class="quick-s">开一张积分卡</div>
       </button>
-      <button class="action-card" data-act="flow">
-        <div class="act-icon cream"><span class="ic" data-icon="list"></span></div>
-        <div class="act-name">看流水</div>
-        <div class="act-sub">全部记录</div>
+      <button class="quick-item" id="qkTxn">
+        <div class="quick-ico qi-orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></div>
+        <div class="quick-t">看流水</div>
+        <div class="quick-s">全部记录</div>
       </button>
-    </section>
+    </div>
 
-    <section class="filter-row">
-      <input class="input search" id="memberSearch" placeholder="搜索姓名 / 手机 / 卡号" />
-      <div class="sort-wrap">
-        <select class="input sort" id="sortSelect">
-          <option value="recent">最近加入</option>
-          <option value="points">积分最高</option>
-          <option value="spend">消费最高</option>
+    <div class="search-row">
+      <input id="qMember" placeholder="搜索姓名 / 手机号 / 卡号">
+      <button class="sort-btn" id="btnSort">
+        <span id="sortLabel">最近加入</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4"
+            stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div id="memberList"></div>
+    <div class="bottom-spacer"></div>
+  </section>
+
+  <!-- ============ 会员详情 ============ -->
+  <section class="page" id="pDetail">
+    <div class="hero-card">
+      <div class="hc-in">
+        <div class="hc-label">当前积分</div>
+        <div class="hc-pts"><span id="dPts">0</span><span class="hc-unit">分</span></div>
+        <div class="hc-meta" id="dMeta"></div>
+        <div class="hc-tier" id="dTier"></div>
+        <div class="hc-progress" id="dProgressWrap">
+          <div class="hc-bar"><i id="dProgressBar"></i></div>
+          <div class="hc-next" id="dNextTier"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-bottom:12px">
+      <button class="spent-toggle" id="btnSpentToggle">
+        <span id="spentLabel">累计消费 · 点一下查看</span>
+      </button>
+    </div>
+
+    <button class="btn" id="btnCard" style="margin-bottom:10px">
+      生成客户积分卡（截图用）
+    </button>
+
+    <div class="card">
+      <label class="fld"><span>消费金额</span>
+        <input id="dConsumeAmt" inputmode="decimal" placeholder="0.00"
+          style="font-size:22px;font-weight:600"></label>
+      <div class="calc" id="dCalcBox">
+        <div class="calc-row"><span>本次可得积分</span><b id="dCalcPts">0</b></div>
+        <div class="calc-sub">10 元 = 1 积分，按金额自动换算（支持小数）</div>
+      </div>
+      <button class="btn" id="btnDConsume">确认记消费</button>
+    </div>
+
+    <div class="card">
+      <div class="adj-head">
+        <b>积分调整</b>
+        <span class="adj-sub">不消费也能加分/减分</span>
+      </div>
+
+      <div class="seg" id="adjSeg">
+        <button class="on" data-mode="add">＋ 增加积分</button>
+        <button data-mode="deduct">− 扣减积分</button>
+      </div>
+
+      <div id="boxAddPts">
+        <label class="fld"><span>增加积分数（可填小数）</span>
+          <input id="addPtsAmt" inputmode="decimal" placeholder="0"></label>
+        <label class="fld"><span>备注（可选）</span>
+          <input id="addPtsNote" placeholder="如：活动赠送 / 生日礼"></label>
+        <button class="btn" id="btnAddPts">确认增加</button>
+      </div>
+
+      <div id="boxDeductPts" style="display:none">
+        <label class="fld"><span>扣减积分数（可填小数）</span>
+          <input id="dedPtsAmt" inputmode="decimal" placeholder="0"></label>
+        <label class="fld"><span>备注（可选）</span>
+          <input id="dedPtsNote" placeholder="如：兑换保温杯 / 抵扣 20 元"></label>
+        <button class="btn danger" id="btnDedPts">确认扣减</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;margin-bottom:4px">
+        <b style="font-size:15px">交易流水</b>
+        <span style="margin-left:auto;font-size:12px;color:var(--sub)" id="dTxnCnt"></span>
+      </div>
+      <div id="dTxns"></div>
+    </div>
+
+    <button class="btn danger" id="btnDelete">删除会员</button>
+    <div class="bottom-spacer"></div>
+  </section>
+
+  <!-- ============ 记消费 ============ -->
+  <section class="page" id="pPay">
+    <label class="fld"><span>查找会员</span>
+      <input id="qPay" placeholder="手机号 / 卡号 / 姓名"></label>
+
+    <div class="card" id="payFound" style="display:none;padding:0;overflow:hidden">
+      <div class="payfound-head">
+        <div class="avatar" id="payAvatar" style="width:48px;height:48px;font-size:20px;border-radius:16px"></div>
+        <div style="flex:1;min-width:0">
+          <div class="payfound-name" id="payName"></div>
+          <div style="font-size:12px;color:var(--sub);margin-top:3px" id="payInfo"></div>
+        </div>
+      </div>
+    </div>
+
+    <label class="fld" style="margin-top:6px"><span>消费金额</span>
+      <input id="payAmt" inputmode="decimal" placeholder="0.00" style="font-size:24px;font-weight:600"></label>
+
+    <div class="calc" id="calcBox">
+      <div class="calc-row"><span>本次可得积分</span><b id="calcPts">0</b></div>
+      <div class="calc-sub">10 元 = 1 积分，按金额自动换算（支持小数）</div>
+    </div>
+
+    <button class="btn" id="btnPay" disabled>确认记消费</button>
+    <p style="font-size:12px;color:var(--sub);text-align:center;margin-top:12px">
+      记录消费金额，积分按 10 元 = 1 分自动增加
+    </p>
+    <div class="bottom-spacer"></div>
+  </section>
+
+  <!-- ============ 流水总览 ============ -->
+  <section class="page" id="pTxn">
+    <!-- 汇总条 -->
+    <div class="txn-summary" id="txnSummary">
+      <div class="ts-item">
+        <div class="ts-val" id="tsCount">0</div>
+        <div class="ts-lab">笔数</div>
+      </div>
+      <div class="ts-sep"></div>
+      <div class="ts-item">
+        <div class="ts-val ts-money" id="tsAmount">¥0</div>
+        <div class="ts-lab">消费额</div>
+      </div>
+      <div class="ts-sep"></div>
+      <div class="ts-item">
+        <div class="ts-val ts-pts" id="tsPoints">0</div>
+        <div class="ts-lab">积分变动</div>
+      </div>
+    </div>
+
+    <!-- 筛选 -->
+    <div class="txn-filters">
+      <div class="seg" id="txnSeg">
+        <button class="on" data-type="all">全部</button>
+        <button data-type="consume">消费</button>
+        <button data-type="points">积分</button>
+      </div>
+      <div class="search-row" style="margin:8px 0 0">
+        <input id="txnSearch" placeholder="搜索会员姓名 / 备注">
+        <select id="txnMember" style="flex:none;width:auto;min-width:112px">
+          <option value="">全部会员</option>
         </select>
       </div>
-    </section>
+    </div>
 
-    <section id="memberList" class="list"></section>
+    <div id="txnGroups"></div>
+    <div id="allTxns"></div>
 
-    <section class="empty" id="memberEmpty">
-      <div class="empty-icon"><span class="ic" data-icon="users"></span></div>
-      <div class="empty-title">还没有会员</div>
-      <div class="empty-sub">添加第一位会员，开始记录消费与积分</div>
-      <button class="btn-primary btn-empty" data-act="add">＋ 新增会员</button>
-    </section>
-  </main>
+    <button class="btn ghost" id="txnMore" style="display:none;margin:12px 0 0">加载更多</button>
 
-  <!-- ============ 记消费页 ============ -->
-  <main class="view hidden" id="view-consume">
-    <section class="panel">
-      <label class="field-label">查找会员</label>
-      <input class="input" id="consumeSearch" placeholder="手机号 / 卡号 / 姓名" />
-      <div id="consumeResults" class="suggest hidden"></div>
-      <div id="consumePicked" class="picked hidden"></div>
-    </section>
-
-    <section class="panel">
-      <label class="field-label">消费金额</label>
-      <input class="input amount" id="consumeAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" />
-
-      <div class="points-preview">
-        <div class="pp-left">
-          <div class="pp-title">本次可得积分</div>
-          <div class="pp-sub">10 元 = 1 积分，按金额自动换算</div>
-        </div>
-        <div class="pp-value" id="previewPoints">0</div>
+    <div class="card" style="margin-top:12px">
+      <div class="adj-head">
+        <b>数据备份</b>
+        <span class="adj-sub">防丢失，务必定期做</span>
       </div>
 
-      <button class="btn-primary btn-block" id="confirmConsume" disabled>确认记消费</button>
-      <p class="tip">记录消费金额，积分按 10 元 = 1 分自动增加</p>
-    </section>
-
-    <section class="panel recent-wrap">
-      <label class="field-label">最近消费</label>
-      <div id="recentTx" class="mini-list"></div>
-    </section>
-  </main>
-
-  <!-- ============ 流水页 ============ -->
-  <main class="view hidden" id="view-flow">
-    <section class="panel">
-      <div id="txList" class="list"></div>
-      <div id="txEmpty" class="empty compact">
-        <div class="empty-icon"><span class="ic" data-icon="receipt"></span></div>
-        <div class="empty-title">暂无流水</div>
-        <div class="empty-sub">有消费和积分变动后会显示在这里</div>
+      <button class="btn" id="btnBackupFile" style="margin-bottom:8px">
+        备份到文件（含全部会员和流水）
+      </button>
+      <div class="hint" style="margin:-2px 0 10px 2px">
+        下载一个 .json 文件，存到「文件」App 或发给自己
       </div>
-    </section>
 
-    <section class="panel">
-      <div class="panel-title">数据备份 <span class="panel-sub">防丢失，务必定期做</span></div>
-      <button class="btn-primary btn-block" id="btnBackupFile">备份到文件（含全部会员和流水）</button>
-      <p class="tip">下载一个 .json 文件，存到「文件」App 或发给自己</p>
-      <button class="btn-outline btn-block" id="btnRestoreFile">从备份文件还原</button>
-      <p class="tip">选之前备份的 .json 文件，覆盖当前数据</p>
-      <button class="btn-outline btn-block" id="btnBackupCode">生成备份码（可复制保存）</button>
-      <p class="tip">没有文件管理权限时用这个，复制文字到备忘录</p>
-      <button class="btn-outline btn-block" id="btnRestoreCode">从备份码还原</button>
-      <input type="file" id="restoreInput" accept="application/json,.json" hidden />
-    </section>
+      <button class="btn ghost" id="btnRestoreFile" style="margin-bottom:8px">
+        从备份文件还原
+      </button>
+      <div class="hint" style="margin:-2px 0 10px 2px">
+        选之前备份的 .json 文件，覆盖当前数据
+      </div>
 
-    <section class="panel">
-      <div class="panel-title">其他 <span class="panel-sub">谨慎操作</span></div>
-      <button class="btn-danger btn-block" id="btnClear">清空所有数据</button>
-    </section>
-  </main>
+      <button class="btn ghost" id="btnBackupText" style="margin-bottom:8px">
+        生成备份码（可复制保存）
+      </button>
+      <div class="hint" style="margin:-2px 0 10px 2px">
+        没有文件管理权限时用这个，复制文字存到备忘录
+      </div>
+    </div>
 
-  <!-- ============ 底部导航 ============ -->
-  <nav class="tabbar">
-    <button class="tab active" data-tab="members"><span class="tab-ic"><span class="ic" data-icon="coin"></span></span><span>会员</span></button>
-    <button class="tab" data-tab="consume"><span class="tab-ic"><span class="ic" data-icon="yen"></span></span><span>记消费</span></button>
-    <button class="tab" data-tab="flow"><span class="tab-ic"><span class="ic" data-icon="menu"></span></span><span>流水</span></button>
-  </nav>
+    <div class="card">
+      <div class="adj-head">
+        <b>其他</b>
+        <span class="adj-sub">谨慎操作</span>
+      </div>
+      <button class="btn danger" id="btnClearAll">清空所有数据</button>
+    </div>
+    <div class="bottom-spacer"></div>
+  </section>
+</main>
+
+<nav>
+  <button class="on" data-tab="member"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h6M9 14h6"/></svg></i>会员</button>
+  <button data-tab="pay"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l6 8 6-8M12 12v8M8.5 14h7M8.5 17h7"/></svg></i>记消费</button>
+  <button data-tab="txn"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></i>流水</button>
+</nav>
+
+<div class="sheet-mask" id="mask"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <h3 id="sheetTitle">选择</h3>
+  <div id="sheetBody"></div>
 </div>
 
-<!-- ============ 弹窗 ============ -->
-<div class="modal-mask hidden" id="modalMask">
-  <div class="modal">
-    <div class="modal-title" id="modalTitle">标题</div>
-    <div class="modal-body" id="modalBody"></div>
-    <div class="modal-actions">
-      <button class="btn-outline" id="modalCancel">取消</button>
-      <button class="btn-primary" id="modalOk">确定</button>
+<div class="toast" id="toast"></div>
+
+<!-- 客户积分卡（截图用，只显示积分） -->
+<div id="cardModal">
+  <div class="cc-wrap">
+    <div class="client-card" id="ccCard" data-tier="0">
+      <div class="cc-sheen"></div>
+      <div class="cc-glow cc-glow-a"></div>
+      <div class="cc-glow cc-glow-b"></div>
+      <div class="cc-grain"></div>
+
+      <div class="cc-head">
+        <div class="cc-brand">
+          <div class="cc-logo" id="ccLogo">◈</div>
+          <div class="cc-brand-txt">
+            <div class="cc-brand-1">MEMBER CARD</div>
+            <div class="cc-brand-2">会员积分卡</div>
+          </div>
+        </div>
+        <div class="cc-tier-chip" id="ccTier">○ 普通会员</div>
+      </div>
+
+      <div class="cc-body">
+        <div class="cc-label">CURRENT POINTS · 当前积分</div>
+        <div class="cc-points-row">
+          <span class="cc-points" id="ccPoints">0</span>
+          <span class="cc-unit">分</span>
+        </div>
+      </div>
+
+      <div class="cc-divider"></div>
+
+      <div class="cc-foot">
+        <div class="cc-foot-l">
+          <div class="cc-name" id="ccName">—</div>
+          <div class="cc-no" id="ccNo">—</div>
+        </div>
+        <div class="cc-foot-r">
+          <div class="cc-rule">10 元 = 1 积分</div>
+          <div class="cc-valid" id="ccValid">—</div>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <div class="card-actions">
+    <button class="ca-close" onclick="document.getElementById('cardModal').classList.remove('on')">关闭</button>
+    <div class="ca-tip">直接截图保存即可发给客户 · 卡片内不含任何消费金额</div>
   </div>
 </div>
 
-<div class="toast hidden" id="toast"></div>
-
-<script src="app.js"></script>
+<script src="core.js?v=103"></script>
+<script src="store.js?v=103"></script>
+<script src="app.js?v=103"></script>
 </body>
 </html>

@@ -9,3 +9,4 @@ logs.zip
 *.ipa
 artifact.zip
 ci.log
+ios-assets/_grad.npy
