@@ -1,0 +1,243 @@
+name: 构建 iOS App
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: '构建类型'
+        type: choice
+        options:
+          - unsigned    # 无签名 ipa（任何人可跑，无需证书）
+          - adhoc       # 真机可装（需要 Apple 证书 secrets）
+          - appstore    # App Store 上架包（需要 App Store Connect 密钥）
+        default: unsigned
+        required: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ipa
+    # macOS runner 自带 Xcode
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 选择 Xcode 版本
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app
+          xcodebuild -version
+          swift --version
+
+      - name: 设置 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 安装依赖
+        run: |
+          npm ci
+          npx cap sync ios
+
+      - name: 生成 Shared Scheme
+        run: |
+          # Capacitor 生成的工程默认不带 shared scheme，
+          # CI 里 xcodebuild -scheme 会找不到，这里补一个
+          SCHEME_DIR=ios/App/App.xcodeproj/xcshareddata/xcschemes
+          mkdir -p "$SCHEME_DIR"
+          cat > "$SCHEME_DIR/App.xcscheme" <<'SCHEME'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Scheme LastUpgradeVersion="1500" version="1.7">
+            <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
+              <BuildActionEntries>
+                <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">
+                  <BuildableReference
+                    BuildableIdentifier="primary"
+                    BlueprintIdentifier="App"
+                    BuildableName="App.app"
+                    BlueprintName="App"
+                    ReferencedContainer="container:App.xcodeproj">
+                  </BuildableReference>
+                </BuildActionEntry>
+              </BuildActionEntries>
+            </BuildAction>
+            <ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES" />
+          </Scheme>
+          SCHEME
+
+      - name: 构建 (unsigned)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type == 'unsigned' || github.event_name != 'workflow_dispatch' }}
+        run: |
+          set -e
+          cd ios/App
+          # 无签名构建：CODE_SIGNING_ALLOWED=NO，不需要任何证书
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/DerivedData \
+            -archivePath build/会员积分.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build archive
+
+          # 手动打成 ipa（unsigned）：无证书时 -exportArchive 会失败，
+          # 所以直接从 archive 里取 .app 按 Payload/ 结构打包
+          rm -rf build/ipa/Payload
+          mkdir -p build/ipa/Payload
+          cp -R "build/会员积分.xcarchive/Products/Applications/App.app" \
+                "build/ipa/Payload/"
+          cd build/ipa
+          zip -qry "../会员积分-unsigned.ipa" Payload
+          cd ..
+          rm -rf build/ipa/Payload
+          mkdir -p build/ipa
+          mv build/会员积分-unsigned.ipa build/ipa/
+          echo "unsigned ipa 已生成："
+          ls -la build/ipa/
+
+      - name: 构建 (adhoc 真机可装)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type == 'adhoc' }}
+        env:
+          P12_BASE64: ${{ secrets.APPLE_CERT_P12 }}
+          P12_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          PROVISION_PROFILE: ${{ secrets.PROVISIONING_PROFILE }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          set -e
+          cd ios/App
+          # 安装证书
+          echo "$P12_BASE64" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p actions build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p actions build.keychain
+          security import /tmp/cert.p12 -k build.keychain \
+            -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k actions build.keychain
+          security list-keychains -d user -s build.keychain login.keychain-db
+
+          # 安装描述文件
+          echo "$PROVISION_PROFILE" | base64 --decode > /tmp/profile.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/DerivedData \
+            -archivePath build/会员积分.xcarchive \
+            -allowProvisioningUpdates \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE" \
+            build archive
+
+          cat > export-options-adhoc.plist <<'PLIST'
+          {
+            "method": "ad-hoc",
+            "signingStyle": "manual",
+            "teamID": "TEAMIDHERE",
+            "debuggingSymbols": false
+          }
+          PLIST
+          sed -i '' "s/TEAMIDHERE/$TEAM_ID/" export-options-adhoc.plist
+
+          mkdir -p build/ipa
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/会员积分.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist export-options-adhoc.plist
+
+      - name: 构建 (App Store)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type == 'appstore' }}
+        env:
+          P12_BASE64: ${{ secrets.APPLE_CERT_P12 }}
+          P12_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -e
+          cd ios/App
+          echo "$P12_BASE64" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p actions build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p actions build.keychain
+          security import /tmp/cert.p12 -k build.keychain \
+            -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k actions build.keychain
+          security list-keychains -d user -s build.keychain login.keychain-db
+
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/DerivedData \
+            -archivePath build/会员积分.xcarchive \
+            -allowProvisioningUpdates \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            build archive
+
+          cat > export-options-appstore.plist <<'PLIST'
+          {
+            "method": "app-store",
+            "signingStyle": "manual",
+            "teamID": "TEAMIDHERE",
+            "uploadSymbols": true,
+            "manageAppVersionAndBuildNumber": false
+          }
+          PLIST
+          sed -i '' "s/TEAMIDHERE/$TEAM_ID/" export-options-appstore.plist
+
+          mkdir -p build/ipa
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/会员积分.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist export-options-appstore.plist
+
+      - name: 上传构建产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 会员积分-ipa
+          path: ios/App/build/ipa/*.ipa
+          if-no-files-found: warn
+
+      - name: 上传到 Release（打 tag 时）
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ios/App/build/ipa/*.ipa
+          body: |
+            ## 会员积分 iOS 安装包
+
+            ### 安装方法（Ad Hoc 包）
+            1. 用 AirDrop / 微信 / iCloud 把 `.ipa` 传到 iPhone
+            2. 用「文件」App 点开安装
+            3. 首次需在 `设置 → 通用 → VPN与设备管理` 信任开发者证书
+
+            > 免费 Apple ID 签名有效期 7 天，到期需重新构建。
