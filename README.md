@@ -10,6 +10,9 @@
 | **纯前端版** | `node serve-web.js` | 数据存浏览器 localStorage（sql.js），http://localhost:5179 |
 | **iOS / Android App** | 见 [IOS-打包说明.md](./IOS-打包说明.md) | Capacitor 原生壳，数据存 App 内真实 `.sqlite` 文件 |
 
+> **不需要 Mac 也能出包**：GitHub Actions 已配置 macOS runner 自动编译，
+> 见 [CI-打包说明.md](./CI-打包说明.md)。Release 里的 `.ipa` 可直接下载。
+
 ## 快速开始
 
 ```bash
@@ -60,7 +63,9 @@ member-points/
 ├── ios-assets/         # 图标源文件
 ├── build-ios.sh        # macOS 一键构建 .ipa
 ├── capacitor.config.json
-└── IOS-打包说明.md
+├── .github/workflows/build-ios.yml   # GitHub Actions 自动构建
+├── IOS-打包说明.md
+└── CI-打包说明.md
 ```
 
 ## API
