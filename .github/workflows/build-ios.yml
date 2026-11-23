@@ -108,17 +108,37 @@ jobs:
             build archive
 
           # 手动打成 ipa（unsigned）：无证书时 -exportArchive 会失败，
-          # 所以直接从 archive 里取 .app 按 Payload/ 结构打包
-          rm -rf build/ipa
-          mkdir -p build/ipa/Payload
-          cp -R "build/会员积分.xcarchive/Products/Applications/App.app" \
-                "build/ipa/Payload/"
-          cd build/ipa
-          zip -qry "../会员积分-unsigned.ipa" Payload
-          cd ..
-          rm -rf build/ipa/Payload
+          # 所以直接从 archive 里取 .app 按 Payload/ 结构打包。
+          # 注意：一律用绝对路径，避免 cd 之后相对路径基准错乱。
+          ROOT="$(pwd)"
+          export ROOT
+          rm -rf "$ROOT/build/ipa"
+          mkdir -p "$ROOT/build/ipa/Payload"
+          cp -R "$ROOT/build/会员积分.xcarchive/Products/Applications/App.app" \
+                "$ROOT/build/ipa/Payload/"
+          # 用 python3 打包（不依赖 zip 命令，且能保留可执行权限）
+          python3 - <<'PY'
+          import os, zipfile, stat
+          root = os.environ["ROOT"]
+          src = os.path.join(root, "build", "ipa", "Payload")
+          out = os.path.join(root, "build", "ipa", "会员积分-unsigned.ipa")
+          with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+              for base, _dirs, files in os.walk(src):
+                  for f in files:
+                      full = os.path.join(base, f)
+                      rel = os.path.relpath(full, os.path.dirname(src))
+                      zi = zipfile.ZipInfo(rel)
+                      zi.compress_type = zipfile.ZIP_DEFLATED
+                      st = os.stat(full)
+                      zi.external_attr = (st.st_mode & 0xFFFF) << 16
+                      zi.date_time = __import__("time").localtime(st.st_mtime)[:6]
+                      with open(full, "rb") as fh:
+                          z.writestr(zi, fh.read())
+          print("packed:", out)
+          PY
+          rm -rf "$ROOT/build/ipa/Payload"
           echo "unsigned ipa 已生成："
-          ls -la build/ipa/
+          ls -la "$ROOT/build/ipa/"
 
       - name: 构建 (adhoc 真机可装)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type == 'adhoc' }}
