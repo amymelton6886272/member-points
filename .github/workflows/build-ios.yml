@@ -60,7 +60,8 @@ jobs:
       - name: 同步 Capacitor
         run: |
           set -e
-          npx cap sync ios --verbose
+          # 注意：Capacitor 8 的 cap sync 不支持 --verbose 参数
+          npx cap sync ios
 
       - name: 生成 Shared Scheme
         run: |
