@@ -1,0 +1,7 @@
+node_modules/
+data/
+ios/App/build/
+ios/App/Pods/
+ios/App/App/public/
+dist/
+*.log

@@ -1,0 +1,26 @@
+{
+  "name": "member-points",
+  "version": "1.0.0",
+  "description": "会员积分记录应用（SQLite + 移动端风格 UI），支持打包为 iOS/Android App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "preview:web": "node serve-web.js",
+    "sync:ios": "npx cap sync ios",
+    "open:ios": "npx cap open ios"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/ios": "^8.6.2",
+    "@capacitor/share": "^8.0.3",
+    "sql.js": "^1.17.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2"
+  }
+}

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="format-detection" content="telephone=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>会员积分</title>
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="phone">
+  <header class="app-header">
+    <div class="hd-row">
+      <div>
+        <h1 id="pageTitle">会员积分</h1>
+        <p id="pageSub"></p>
+      </div>
+      <button class="hd-btn" id="headerAction">＋ 新增</button>
+    </div>
+  </header>
+
+  <!-- ============ 会员页 ============ -->
+  <main class="view" id="view-members">
+    <section class="stat-row">
+      <div class="stat-card green">
+        <div class="stat-value" id="stMembers">0</div>
+        <div class="stat-label">会员数</div>
+      </div>
+      <div class="stat-card blue clickable" id="stAmountCard">
+        <div class="stat-value" id="stAmount">—</div>
+        <div class="stat-label">消费（点击查看）</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-value" id="stPoints">0</div>
+        <div class="stat-label">积分合计</div>
+      </div>
+    </section>
+
+    <section class="action-row">
+      <button class="action-card" data-act="consume">
+        <div class="act-icon mint"><span class="ic" data-icon="tag"></span></div>
+        <div class="act-name">记消费</div>
+        <div class="act-sub">快速加积分</div>
+      </button>
+      <button class="action-card" data-act="add">
+        <div class="act-icon sky"><span class="ic" data-icon="plus"></span></div>
+        <div class="act-name">新增会员</div>
+        <div class="act-sub">开一张积分卡</div>
+      </button>
+      <button class="action-card" data-act="flow">
+        <div class="act-icon cream"><span class="ic" data-icon="list"></span></div>
+        <div class="act-name">看流水</div>
+        <div class="act-sub">全部记录</div>
+      </button>
+    </section>
+
+    <section class="filter-row">
+      <input class="input search" id="memberSearch" placeholder="搜索姓名 / 手机 / 卡号" />
+      <div class="sort-wrap">
+        <select class="input sort" id="sortSelect">
+          <option value="recent">最近加入</option>
+          <option value="points">积分最高</option>
+          <option value="spend">消费最高</option>
+        </select>
+      </div>
+    </section>
+
+    <section id="memberList" class="list"></section>
+
+    <section class="empty" id="memberEmpty">
+      <div class="empty-icon"><span class="ic" data-icon="users"></span></div>
+      <div class="empty-title">还没有会员</div>
+      <div class="empty-sub">添加第一位会员，开始记录消费与积分</div>
+      <button class="btn-primary btn-empty" data-act="add">＋ 新增会员</button>
+    </section>
+  </main>
+
+  <!-- ============ 记消费页 ============ -->
+  <main class="view hidden" id="view-consume">
+    <section class="panel">
+      <label class="field-label">查找会员</label>
+      <input class="input" id="consumeSearch" placeholder="手机号 / 卡号 / 姓名" />
+      <div id="consumeResults" class="suggest hidden"></div>
+      <div id="consumePicked" class="picked hidden"></div>
+    </section>
+
+    <section class="panel">
+      <label class="field-label">消费金额</label>
+      <input class="input amount" id="consumeAmount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" />
+
+      <div class="points-preview">
+        <div class="pp-left">
+          <div class="pp-title">本次可得积分</div>
+          <div class="pp-sub">10 元 = 1 积分，按金额自动换算</div>
+        </div>
+        <div class="pp-value" id="previewPoints">0</div>
+      </div>
+
+      <button class="btn-primary btn-block" id="confirmConsume" disabled>确认记消费</button>
+      <p class="tip">记录消费金额，积分按 10 元 = 1 分自动增加</p>
+    </section>
+
+    <section class="panel recent-wrap">
+      <label class="field-label">最近消费</label>
+      <div id="recentTx" class="mini-list"></div>
+    </section>
+  </main>
+
+  <!-- ============ 流水页 ============ -->
+  <main class="view hidden" id="view-flow">
+    <section class="panel">
+      <div id="txList" class="list"></div>
+      <div id="txEmpty" class="empty compact">
+        <div class="empty-icon"><span class="ic" data-icon="receipt"></span></div>
+        <div class="empty-title">暂无流水</div>
+        <div class="empty-sub">有消费和积分变动后会显示在这里</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">数据备份 <span class="panel-sub">防丢失，务必定期做</span></div>
+      <button class="btn-primary btn-block" id="btnBackupFile">备份到文件（含全部会员和流水）</button>
+      <p class="tip">下载一个 .json 文件，存到「文件」App 或发给自己</p>
+      <button class="btn-outline btn-block" id="btnRestoreFile">从备份文件还原</button>
+      <p class="tip">选之前备份的 .json 文件，覆盖当前数据</p>
+      <button class="btn-outline btn-block" id="btnBackupCode">生成备份码（可复制保存）</button>
+      <p class="tip">没有文件管理权限时用这个，复制文字到备忘录</p>
+      <button class="btn-outline btn-block" id="btnRestoreCode">从备份码还原</button>
+      <input type="file" id="restoreInput" accept="application/json,.json" hidden />
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">其他 <span class="panel-sub">谨慎操作</span></div>
+      <button class="btn-danger btn-block" id="btnClear">清空所有数据</button>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-tab="members"><span class="tab-ic"><span class="ic" data-icon="coin"></span></span><span>会员</span></button>
+    <button class="tab" data-tab="consume"><span class="tab-ic"><span class="ic" data-icon="yen"></span></span><span>记消费</span></button>
+    <button class="tab" data-tab="flow"><span class="tab-ic"><span class="ic" data-icon="menu"></span></span><span>流水</span></button>
+  </nav>
+</div>
+
+<div class="modal-mask hidden" id="modalMask">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">标题</div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="btn-outline" id="modalCancel">取消</button>
+      <button class="btn-primary" id="modalOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="sql-wasm.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

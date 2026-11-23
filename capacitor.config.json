@@ -1,0 +1,13 @@
+{
+  "appId": "com.workbuddy.memberpoints",
+  "appName": "会员积分",
+  "webDir": "web",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "always",
+    "allowsLinkPreview": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
